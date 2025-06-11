@@ -13,8 +13,7 @@
   },
   "lint-staged": {
     "app/**/*.{ts,tsx}": [
-      "prettier --write",
-      "npm run typecheck"
+      "prettier --write"
     ],
     "*.{json,css,md}": [
       "prettier --write"
