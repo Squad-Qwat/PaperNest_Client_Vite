@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { landingNavigationItems } from '@/data/landing-navbar-items'
 import { useMediaQuery } from '@/lib/use-media-querry'
 import { cn } from '@/lib/utils'
-import { HelpCircle, Menu, X } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 
@@ -28,10 +28,10 @@ export default function LandingNavbar() {
     <header
       className={cn(
         'fixed top-0 right-0 left-0 z-50 backdrop-blur transition-all duration-200 bg-background/95 supports-[backdrop-filter]:bg-background/60',
-        isScrolled ? 'border-b' : 'border-b'
+        isScrolled ? 'border-b' : ''
       )}
     >
-      <div className="flex justify-between items-center px-4 py-3 mx-auto max-w-7xl">
+      <div className="flex justify-between items-center px-4 py-4 mx-auto max-w-7xl">
         <Link to="" className="mr-8 text-2xl font-black uppercase ita">
           PaperNest
         </Link>
@@ -43,14 +43,14 @@ export default function LandingNavbar() {
                 <Link
                   key={index}
                   to={items.href}
-                  className="px-3 py-2 text-sm rounded text-muted-foreground hover:bg-accent hover:text-foreground"
+                  className="px-3 py-1 font-medium rounded text-foreground hover:bg-accent hover:text-foreground"
                 >
                   {items.title}
                 </Link>
               ))}
             </nav>
 
-            <div className="flex items-center ml-auto space-x-4">
+            <div className="flex items-center space-x-4">
               <Link to="">
                 <Button variant="outline">Log in</Button>
               </Link>
