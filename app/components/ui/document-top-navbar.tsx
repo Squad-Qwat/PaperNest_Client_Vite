@@ -3,15 +3,14 @@ import { Search, Bell, Settings, ChevronsUpDown, UserRoundPlus } from 'lucide-re
 
 interface TopNavBarProps {
   activeTab?: string
+  onTabChange?: (tab: string) => void
 }
 
-export function TopNavBar({ activeTab = 'Overview' }: TopNavBarProps) {
+export function TopNavBar({ activeTab = 'Overview', onTabChange }: TopNavBarProps) {
   const navItems = [
     { name: 'Overview', href: '#' },
-    { name: 'AI Chat', href: '#' },
     { name: 'Citations', href: '#' },
     { name: 'Reviews', href: '#' },
-    { name: 'Trash', href: '#' },
     { name: 'Settings', href: '#' },
   ]
 
@@ -62,15 +61,15 @@ export function TopNavBar({ activeTab = 'Overview' }: TopNavBarProps) {
         </div>
         <nav className="flex items-center gap-6">
           {navItems.map((item) => (
-            <a
+            <button
               key={item.name}
-              href={item.href}
-              className={`text-sm font-medium py-2 ${
+              onClick={() => onTabChange?.(item.name)}
+              className={`text-sm font-medium py-2 transition-colors ${
                 activeTab === item.name ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               {item.name}
-            </a>
+            </button>
           ))}
         </nav>
       </div>
