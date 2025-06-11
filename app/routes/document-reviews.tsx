@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router'
 import type { Route } from './+types/document-reviews'
 import { TopNavBar } from '@/components/ui/document-top-navbar'
@@ -14,22 +14,10 @@ import {
   Clock,
   FileText,
 } from 'lucide-react'
+import { useReviews } from '../hooks'
+import { type StudentReview, type DosenReview } from '../services/reviews.service'
 
 type ReviewStatus = 'Approved' | 'NeedsRevision' | 'Done'
-
-interface StudentReview {
-  id: string
-  studentName: string
-  studentComment: string
-  submittedDate: string
-  documentContent: string
-  dosenReview?: {
-    dosenName: string
-    comment: string
-    status: ReviewStatus
-    reviewedDate: string
-  } | null
-}
 
 interface AddReviewForm {
   studentName: string
@@ -48,12 +36,11 @@ export default function DocumentReviews({ params }: Route['ComponentProps']) {
   const { documentId } = params
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('Reviews')
-  const [reviews, setReviews] = useState<StudentReview[]>([])
   const [showAddForm, setShowAddForm] = useState(false)
   const [showDetailModal, setShowDetailModal] = useState<string | null>(null)
   const [showDocumentModal, setShowDocumentModal] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
+
+  const { reviews, isLoading, isSaving, error, addReview, deleteReview } = useReviews(documentId)
 
   const [formData, setFormData] = useState<AddReviewForm>({
     studentName: '',
@@ -61,233 +48,6 @@ export default function DocumentReviews({ params }: Route['ComponentProps']) {
     documentContent: '',
   })
 
-  // API Base URL - Adjust with your API URL
-  const API_BASE_URL = 'https://your-api-url.com/api'
-
-  // Fetch reviews from API
-  const fetchReviews = async () => {
-    try {
-      setIsLoading(true)
-      // Example API call - adjust with your API endpoint
-      const response = await fetch(`${API_BASE_URL}/documents/${documentId}/reviews`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Authorization': `Bearer ${token}`, // If using authentication
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch reviews')
-      }
-
-      const data = await response.json()
-      setReviews(data)
-    } catch (error) {
-      console.error('Error fetching reviews:', error) // Fallback to sample data for development
-      setReviews([
-        {
-          id: '1',
-          studentName: 'Ahmad Rizki',
-          studentComment:
-            'Saya telah menyelesaikan penelitian tentang machine learning dalam healthcare. Mohon review untuk metodologi dan hasil analisis yang saya lakukan. Terima kasih.',
-          submittedDate: '2024-03-10T10:30:00Z',
-          documentContent: `# Machine Learning dalam Healthcare
-
-## Abstract
-Penelitian ini mengkaji implementasi machine learning dalam sistem healthcare untuk meningkatkan akurasi diagnosis dan efisiensi pelayanan medis.
-
-## Pendahuluan
-Machine learning telah menjadi teknologi yang sangat penting dalam transformasi digital sektor healthcare. Dengan kemampuan untuk menganalisis data dalam jumlah besar dan mengidentifikasi pola-pola kompleks, machine learning dapat membantu:
-
-- Diagnosis penyakit yang lebih akurat
-- Prediksi risiko kesehatan
-- Personalisasi pengobatan
-- Optimalisasi alur kerja rumah sakit
-
-## Metodologi
-### Dataset
-- Data pasien dari 3 rumah sakit besar
-- 10,000 rekam medis elektronik
-- Periode pengumpulan: 2020-2023
-
-### Algoritma
-1. **Random Forest** untuk klasifikasi diagnosis
-2. **Neural Network** untuk prediksi risiko
-3. **SVM** untuk analisis citra medis
-
-## Hasil dan Pembahasan
-Implementasi machine learning menunjukkan peningkatan akurasi diagnosis sebesar 15% dibandingkan metode konvensional.
-
-## Kesimpulan
-Machine learning terbukti efektif dalam meningkatkan kualitas pelayanan healthcare.`,
-          dosenReview: {
-            dosenName: 'Dr. Sarah Johnson',
-            comment:
-              'Penelitian sudah baik, namun perlu perbaikan pada bagian metodologi. Silakan tambahkan lebih banyak referensi terkini dan perbaiki analisis statistik.',
-            status: 'NeedsRevision',
-            reviewedDate: '2024-03-12T14:20:00Z',
-          },
-        },
-        {
-          id: '2',
-          studentName: 'Siti Nurhaliza',
-          studentComment:
-            'Draft tesis saya sudah selesai. Mohon review untuk keseluruhan struktur dan konten. Saya sudah merevisi berdasarkan masukan sebelumnya.',
-          submittedDate: '2024-03-08T14:20:00Z',
-          documentContent: `# Analisis Sentimen Media Sosial
-
-## Latar Belakang
-Media sosial telah menjadi platform utama untuk ekspresi opini publik. Analisis sentimen dapat membantu memahami persepsi masyarakat terhadap berbagai topik.
-
-## Tujuan Penelitian
-- Mengembangkan model analisis sentimen yang akurat
-- Menganalisis tren sentimen pada platform Twitter
-- Mengidentifikasi faktor-faktor yang mempengaruhi sentimen publik
-
-## Metodologi
-### Pengumpulan Data
-- 100,000 tweet dari Twitter API
-- Preprocessing: cleaning, tokenization, stemming
-- Labeling sentimen: positif, negatif, netral
-
-### Model
-- **LSTM** untuk sequence modeling
-- **BERT** untuk contextual understanding
-- **Ensemble method** untuk kombinasi model
-
-## Hasil
-Model ensemble mencapai akurasi 89.5% pada dataset testing.
-
-## Kontribusi
-1. Model analisis sentimen dengan akurasi tinggi
-2. Dataset sentimen Bahasa Indonesia yang besar
-3. Framework untuk monitoring sentimen real-time`,
-          dosenReview: {
-            dosenName: 'Prof. Michael Chen',
-            comment:
-              'Excellent work! Tesis sudah sangat baik dan siap untuk ujian. Semua revisi sudah sesuai dengan yang diminta.',
-            status: 'Approved',
-            reviewedDate: '2024-03-10T09:15:00Z',
-          },
-        },
-        {
-          id: '3',
-          studentName: 'Budi Santoso',
-          studentComment:
-            'Ini adalah pengajuan review terbaru untuk bab 4 dan 5 tesis saya. Mohon feedback terkait analisis data dan pembahasan hasil penelitian.',
-          submittedDate: '2024-03-15T09:15:00Z',
-          documentContent: `# Sistem Rekomendasi E-Commerce
-
-## Bab 4: Implementasi Sistem
-
-### 4.1 Arsitektur Sistem
-Sistem rekomendasi yang dikembangkan menggunakan arsitektur microservices dengan komponen:
-
-- **Data Processing Service**: Mengolah data transaksi dan profil pengguna
-- **ML Model Service**: Menjalankan algoritma collaborative filtering dan content-based filtering
-- **API Gateway**: Mengelola request dan response
-- **Caching Layer**: Redis untuk mempercepat response time
-
-### 4.2 Algoritma Rekomendasi
-#### Collaborative Filtering
-- Matrix Factorization menggunakan SVD
-- User-based dan Item-based filtering
-- Handling cold start problem dengan content-based approach
-
-#### Content-Based Filtering
-- TF-IDF untuk representasi produk
-- Cosine similarity untuk mencari produk serupa
-- Feature engineering dari kategori, harga, dan rating
-
-### 4.3 Evaluasi Model
-- **Precision@K**: 0.75 untuk K=10
-- **Recall@K**: 0.68 untuk K=10
-- **NDCG**: 0.82
-- **Coverage**: 85% produk mendapat rekomendasi
-
-## Bab 5: Hasil dan Pembahasan
-
-### 5.1 Analisis Performa
-Sistem menunjukkan peningkatan engagement rate sebesar 23% dan conversion rate sebesar 18% dibandingkan sistem sebelumnya.
-
-### 5.2 A/B Testing
-Testing dilakukan selama 3 bulan dengan 10,000 pengguna menunjukkan:
-- Peningkatan click-through rate: 15%
-- Peningkatan purchase rate: 12%
-- Peningkatan user session duration: 20%
-
-### 5.3 Limitasi
-- Cold start problem untuk pengguna baru
-- Computational complexity untuk real-time recommendation
-- Data sparsity pada long-tail products`,
-          dosenReview: null, // Latest submission, belum ada review dari dosen
-        },
-        {
-          id: '4',
-          studentName: 'Dewi Permatasari',
-          studentComment:
-            'Telah melakukan revisi sesuai saran. Mohon review ulang untuk bagian yang sudah diperbaiki.',
-          submittedDate: '2024-03-14T16:45:00Z',
-          documentContent: `# Blockchain untuk Supply Chain Management
-
-## Abstract
-Penelitian ini mengusulkan implementasi teknologi blockchain untuk meningkatkan transparansi dan traceability dalam supply chain management.
-
-## Pendahuluan
-Supply chain modern menghadapi tantangan dalam hal:
-- Transparansi informasi
-- Keaslian produk
-- Traceability dari produsen ke konsumen
-- Trust antar stakeholder
-
-Blockchain dapat mengatasi masalah-masalah tersebut dengan:
-- Immutable ledger
-- Smart contracts
-- Decentralized verification
-- Real-time tracking
-
-## Metodologi
-### Desain Blockchain
-- **Platform**: Hyperledger Fabric
-- **Consensus**: Practical Byzantine Fault Tolerance (PBFT)
-- **Smart Contract**: Chaincode untuk business logic
-
-### Use Case
-Implementasi pada supply chain produk makanan organik dengan stakeholder:
-- Petani
-- Distributor
-- Retailer
-- Konsumen
-- Badan sertifikasi
-
-### Metrics
-- Transaction throughput
-- Latency
-- Storage efficiency
-- User adoption rate
-
-## Hasil
-- Peningkatan transparansi: 95%
-- Reduction in fraud: 78%
-- Faster dispute resolution: 60%
-- Consumer trust improvement: 85%
-
-## Kesimpulan
-Blockchain terbukti efektif dalam meningkatkan transparansi dan trust dalam supply chain management.`,
-          dosenReview: {
-            dosenName: 'Dr. Emily Rodriguez',
-            comment:
-              'Revisi sudah selesai dengan baik. Penelitian sudah memenuhi standar dan siap untuk tahap selanjutnya.',
-            status: 'Done',
-            reviewedDate: '2024-03-16T11:30:00Z',
-          },
-        },
-      ])
-    } finally {
-      setIsLoading(false)
-    }
-  }
   // Add new review
   const handleAddReview = async () => {
     if (!formData.studentName || !formData.studentComment || !formData.documentContent) {
@@ -296,27 +56,7 @@ Blockchain terbukti efektif dalam meningkatkan transparansi dan trust dalam supp
     }
 
     try {
-      setIsSaving(true)
-      // Example API call to add review
-      const response = await fetch(`${API_BASE_URL}/documents/${documentId}/reviews`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Authorization': `Bearer ${token}`, // If using authentication
-        },
-        body: JSON.stringify({
-          studentName: formData.studentName,
-          studentComment: formData.studentComment,
-          documentContent: formData.documentContent,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to add review')
-      }
-
-      const newReview = await response.json()
-      setReviews((prev) => [...prev, newReview])
+      await addReview(formData)
 
       // Reset form
       setFormData({
@@ -327,30 +67,21 @@ Blockchain terbukti efektif dalam meningkatkan transparansi dan trust dalam supp
       setShowAddForm(false)
     } catch (error) {
       console.error('Error adding review:', error)
-      // Fallback for development - add review locally
-      const newReview: StudentReview = {
-        id: Date.now().toString(),
-        studentName: formData.studentName,
-        studentComment: formData.studentComment,
-        submittedDate: new Date().toISOString(),
-        documentContent: formData.documentContent,
-        dosenReview: null,
-      }
-      setReviews((prev) => [...prev, newReview])
-      setFormData({
-        studentName: '',
-        studentComment: '',
-        documentContent: '',
-      })
-      setShowAddForm(false)
-    } finally {
-      setIsSaving(false)
     }
   }
 
-  useEffect(() => {
-    fetchReviews()
-  }, [documentId])
+  // Delete review
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!confirm('Are you sure you want to delete this review?')) {
+      return
+    }
+
+    try {
+      await deleteReview(reviewId)
+    } catch (error) {
+      console.error('Error deleting review:', error)
+    }
+  }
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab)
@@ -385,17 +116,23 @@ Blockchain terbukti efektif dalam meningkatkan transparansi dan trust dalam supp
   }
 
   const getStatusIcon = (status: ReviewStatus) => {
+    if (!status) return <Clock className="h-5 w-5 text-gray-400" />
+
     switch (status) {
       case 'Approved':
-        return <CheckCircle className="h-4 w-4 text-green-600" />
+        return <CheckCircle className="h-5 w-5 text-green-500" />
       case 'NeedsRevision':
-        return <XCircle className="h-4 w-4 text-red-600" />
+        return <XCircle className="h-5 w-5 text-red-500" />
       case 'Done':
-        return <CheckCircle className="h-4 w-4 text-blue-600" />
+        return <CheckCircle className="h-5 w-5 text-blue-500" />
+      default:
+        return <Clock className="h-5 w-5 text-gray-400" />
     }
   }
 
-  const getStatusColor = (status: ReviewStatus) => {
+  const getStatusColor = (status: ReviewStatus | undefined) => {
+    if (!status) return 'bg-gray-100 text-gray-600'
+
     switch (status) {
       case 'Approved':
         return 'bg-green-100 text-green-800'
@@ -403,6 +140,8 @@ Blockchain terbukti efektif dalam meningkatkan transparansi dan trust dalam supp
         return 'bg-red-100 text-red-800'
       case 'Done':
         return 'bg-blue-100 text-blue-800'
+      default:
+        return 'bg-gray-100 text-gray-600'
     }
   }
 
@@ -509,11 +248,12 @@ Blockchain terbukti efektif dalam meningkatkan transparansi dan trust dalam supp
                     <div className="mt-4 pt-4 border-t border-gray-200">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="font-medium text-gray-900">Dosen Review:</span>
-                        <span className="text-sm text-gray-600">
-                          {review.dosenReview.dosenName}
-                        </span>
+                        <span className="text-sm text-gray-600">Dosen</span>
                         <span className="text-sm text-gray-500">
-                          • {formatDate(review.dosenReview.reviewedDate)}
+                          •{' '}
+                          {review.dosenReview.createdAt
+                            ? formatDate(review.dosenReview.createdAt)
+                            : 'Recent'}
                         </span>
                       </div>
                       <p className="text-gray-700 leading-relaxed">{review.dosenReview.comment}</p>
@@ -648,13 +388,15 @@ Blockchain terbukti efektif dalam meningkatkan transparansi dan trust dalam supp
                           <div className="flex items-center gap-4 text-sm text-gray-600">
                             <div className="flex items-center gap-1">
                               <User className="h-4 w-4" />
-                              <span className="font-medium text-gray-900">
-                                {selectedReview.dosenReview.dosenName}
-                              </span>
+                              <span className="font-medium text-gray-900">Dosen</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <Calendar className="h-4 w-4" />
-                              <span>{formatDate(selectedReview.dosenReview.reviewedDate)}</span>
+                              <span>
+                                {selectedReview.dosenReview.createdAt
+                                  ? formatDate(selectedReview.dosenReview.createdAt)
+                                  : 'Recent'}
+                              </span>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">

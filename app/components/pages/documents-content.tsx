@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { TopNavBar } from '@/components/ui/dashboard-top-navbar'
+import { DashboardTopNavBar } from '@/components/ui/dashboard-top-navbar'
 import { Plus, Filter, Grid3X3, List, FileText, MoreHorizontal, Trash2, Edit } from 'lucide-react'
 
 interface Document {
@@ -12,6 +12,7 @@ interface Document {
   title: string
   createdAt: string
   updatedAt: string
+  workspaceId?: string // Add workspace ID to document interface
 }
 
 interface DocumentsContentProps {
@@ -21,6 +22,9 @@ interface DocumentsContentProps {
   onDeleteDocument: (documentId: string) => Promise<void>
   isLoading: boolean
   error: string | null
+  emptyStateContent?: React.ReactNode
+  hasWorkspace?: boolean // Add workspace context
+  selectedWorkspace?: { id: string; name: string } | null // Add selected workspace info
 }
 
 export function DocumentsContent({
@@ -30,6 +34,9 @@ export function DocumentsContent({
   onDeleteDocument,
   isLoading,
   error,
+  emptyStateContent,
+  hasWorkspace = true,
+  selectedWorkspace = null,
 }: DocumentsContentProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -87,9 +94,16 @@ export function DocumentsContent({
   }
 
   const handleCreateDocument = async () => {
+    // Check if user has a workspace before creating document
+    if (!hasWorkspace || !selectedWorkspace) {
+      alert('You need to join or create a workspace before creating documents.')
+      return
+    }
+
     try {
       const newDoc = await onCreateDocument({
         title: 'New Document',
+        workspaceId: selectedWorkspace.id, // Include workspace ID
       })
       navigate(`/document-edit/${newDoc.id}`)
     } catch (error) {
@@ -99,7 +113,7 @@ export function DocumentsContent({
   return (
     <div className="flex-1 flex flex-col h-screen bg-white">
       {/* Top Navigation Bar */}
-      <TopNavBar activeTab="Overview" />
+      <DashboardTopNavBar title="Overview" />
 
       {/* Welcome Section */}
       <div className="px-6 py-8 bg-gray-50 border-b">
@@ -197,17 +211,19 @@ export function DocumentsContent({
 
         {/* Documents Grid/List */}
         {filteredDocuments.length === 0 ? (
-          <div className="text-center py-12">
-            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchQuery ? 'No documents found' : 'No documents yet'}
-            </h3>
-            <p className="text-gray-600 mb-4">
-              {searchQuery
-                ? 'Try adjusting your search query'
-                : 'Create your first document to get started'}
-            </p>
-          </div>
+          emptyStateContent || (
+            <div className="text-center py-12">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {searchQuery ? 'No documents found' : 'No documents yet'}
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {searchQuery
+                  ? 'Try adjusting your search query'
+                  : 'Create your first document to get started'}
+              </p>
+            </div>
+          )
         ) : (
           <div
             className={
@@ -305,9 +321,18 @@ export function DocumentsContent({
         {/* Floating Add Button */}
         <div className="fixed bottom-6 right-6">
           <Button
-            className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg h-12 w-12 rounded-full p-0"
+            className={`shadow-lg h-12 w-12 rounded-full p-0 ${
+              hasWorkspace && selectedWorkspace
+                ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                : 'bg-gray-400 cursor-not-allowed text-white'
+            }`}
             onClick={handleCreateDocument}
-            disabled={isLoading}
+            disabled={isLoading || !hasWorkspace || !selectedWorkspace}
+            title={
+              !hasWorkspace || !selectedWorkspace
+                ? 'Please select a workspace to create documents'
+                : 'Create new document'
+            }
           >
             <Plus className="h-6 w-6" />
           </Button>

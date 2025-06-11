@@ -1,14 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router'
 import type { Route } from './+types/document-settings'
 import { TopNavBar } from '@/components/ui/document-top-navbar'
 import { Button } from '@/components/ui/button'
 import { Settings, Save, Trash2 } from 'lucide-react'
-
-interface DocumentSettings {
-  id: string
-  title: string
-}
+import { useDocumentSettings } from '../hooks'
 
 export function meta({ params }: Route['MetaArgs']) {
   return [
@@ -21,102 +17,29 @@ export default function DocumentSettings({ params }: Route['ComponentProps']) {
   const { documentId } = params
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('Settings')
-  const [settings, setSettings] = useState<DocumentSettings>({
-    id: '',
-    title: '',
-  })
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
-  // API Base URL - Sesuaikan dengan URL API Anda
-  const API_BASE_URL = 'https://your-api-url.com/api'
+  const { settings, isLoading, isSaving, error, updateSettings, saveSettings, deleteDocument } =
+    useDocumentSettings(documentId)
 
-  // Fetch document settings dari API
-  const fetchSettings = async () => {
-    try {
-      setIsLoading(true)
-      // Contoh API call - sesuaikan dengan endpoint API Anda
-      const response = await fetch(`${API_BASE_URL}/documents/${documentId}/settings`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Authorization': `Bearer ${token}`, // Jika menggunakan authentication
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch document settings')
-      }
-
-      const data = await response.json()
-      setSettings(data)
-    } catch (error) {
-      console.error('Error fetching document settings:', error) // Fallback ke sample data untuk development
-      setSettings({
-        id: documentId || '',
-        title: 'Machine Learning in Healthcare: A Comprehensive Review',
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // Save document settings
   const handleSaveSettings = async () => {
-    try {
-      setIsSaving(true)
-      // Contoh API call untuk menyimpan settings
-      const response = await fetch(`${API_BASE_URL}/documents/${documentId}/settings`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Authorization': `Bearer ${token}`, // Jika menggunakan authentication
-        },
-        body: JSON.stringify(settings),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to save document settings')
-      }
-
+    const success = await saveSettings()
+    if (success) {
       alert('Settings saved successfully!')
-    } catch (error) {
-      console.error('Error saving document settings:', error)
-      // Fallback untuk development
-      alert('Settings saved locally (development mode)')
-    } finally {
-      setIsSaving(false)
+    } else {
+      alert('Error saving settings. Please try again.')
     }
   }
 
-  // Delete document
   const handleDeleteDocument = async () => {
-    try {
-      // Contoh API call untuk menghapus document
-      const response = await fetch(`${API_BASE_URL}/documents/${documentId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Authorization': `Bearer ${token}`, // Jika menggunakan authentication
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete document')
-      }
-
+    const success = await deleteDocument()
+    if (success) {
       alert('Document deleted successfully!')
-      navigate('/workspace/documents')
-    } catch (error) {
-      console.error('Error deleting document:', error)
-      alert('Error deleting document')
+      navigate('/documents')
+    } else {
+      alert('Error deleting document. Please try again.')
     }
   }
-
-  useEffect(() => {
-    fetchSettings()
-  }, [documentId])
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab)
@@ -188,7 +111,7 @@ export default function DocumentSettings({ params }: Route['ComponentProps']) {
                 <input
                   type="text"
                   value={settings.title}
-                  onChange={(e) => setSettings((prev) => ({ ...prev, title: e.target.value }))}
+                  onChange={(e) => updateSettings({ title: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="Enter document title"
                 />
@@ -198,52 +121,54 @@ export default function DocumentSettings({ params }: Route['ComponentProps']) {
             {/* Danger Zone */}
             <div className="bg-white rounded-lg border border-red-200 p-6">
               <h2 className="text-lg font-semibold text-red-900 mb-4">Danger Zone</h2>
-              <div className="space-y-4">
-                <p className="text-sm text-red-600">
-                  Once you delete a document, there is no going back. Please be certain.
-                </p>
-                <Button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  variant="outline"
-                  className="text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Document
-                </Button>
-              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                These actions are destructive and cannot be reversed. Be careful!
+              </p>
+
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Document
+              </Button>
             </div>
           </div>
         </div>
+      </main>
 
-        {/* Delete Confirmation Modal */}
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg w-full max-w-md">
-              <div className="p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Confirm Deletion</h2>
-                <p className="text-gray-600 mb-6">
-                  Are you sure you want to delete this document? This action cannot be undone.
-                </p>
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleDeleteDocument}
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </div>
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg w-full max-w-md p-6">
+            <h2 className="text-xl font-semibold text-red-600 mb-4">Confirm Deletion</h2>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete this document? This action cannot be undone.
+            </p>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  handleDeleteDocument()
+                  setShowDeleteConfirm(false)
+                }}
+                className="flex-1"
+              >
+                Delete Permanently
+              </Button>
             </div>
           </div>
-        )}
-      </main>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,27 +1,21 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router'
 import type { Route } from './+types/document-citations'
 import { TopNavBar } from '@/components/ui/document-top-navbar'
 import { Button } from '@/components/ui/button'
 import { Plus, Calendar, ExternalLink, BookOpen, User, Edit, Trash2 } from 'lucide-react'
+import { useCitations } from '../hooks'
+import { type Citation } from '../services/citations.service'
 
-interface Citation {
-  id: string
-  title: string
-  author: string
-  publicationInfo: string
-  publicationDate?: string
-  accessDate?: string
-  doi?: string
-}
-
+// Interface untuk form tambah citation
 interface AddCitationForm {
   title: string
   author: string
   publicationInfo: string
   publicationDate: string
   accessDate: string
-  doi: string
+  DOI: string
+  type: string
 }
 
 export function meta({ params }: Route['MetaArgs']) {
@@ -35,10 +29,10 @@ export default function DocumentCitations({ params }: Route['ComponentProps']) {
   const { documentId } = params
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('Citations')
-  const [citations, setCitations] = useState<Citation[]>([])
   const [showAddForm, setShowAddForm] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
+
+  const { citations, apaFormats, isLoading, error, addCitation, deleteCitation } =
+    useCitations(documentId)
 
   const [formData, setFormData] = useState<AddCitationForm>({
     title: '',
@@ -46,69 +40,13 @@ export default function DocumentCitations({ params }: Route['ComponentProps']) {
     publicationInfo: '',
     publicationDate: '',
     accessDate: '',
-    doi: '',
+    DOI: '',
+    type: 'Journal',
   })
 
-  // API Base URL - Sesuaikan dengan URL API Anda
-  const API_BASE_URL = 'https://your-api-url.com/api'
+  const [isSaving, setIsSaving] = useState(false)
 
-  // Fetch citations dari API
-  const fetchCitations = async () => {
-    try {
-      setIsLoading(true)
-      // Contoh API call - sesuaikan dengan endpoint API Anda
-      const response = await fetch(`${API_BASE_URL}/documents/${documentId}/citations`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Authorization': `Bearer ${token}`, // Jika menggunakan authentication
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch citations')
-      }
-
-      const data = await response.json()
-      setCitations(data)
-    } catch (error) {
-      console.error('Error fetching citations:', error)
-      // Fallback ke sample data untuk development
-      setCitations([
-        {
-          id: '1',
-          title: 'Deep Learning for Medical Image Analysis',
-          author: 'Zhang, L., Wang, S., Liu, B.',
-          publicationInfo: 'Nature Medicine, Vol. 28, No. 4, pp. 123-135',
-          publicationDate: '2024-02-15',
-          accessDate: '2024-03-10',
-          doi: '10.1038/s41591-024-0234-1',
-        },
-        {
-          id: '2',
-          title: 'Artificial Intelligence in Healthcare: Current Applications and Future Prospects',
-          author: 'Johnson, M., Smith, A., Brown, K.',
-          publicationInfo: 'Journal of Medical Internet Research, Vol. 26, e45678',
-          publicationDate: '2024-01-20',
-          accessDate: '2024-03-05',
-          doi: '10.2196/45678',
-        },
-        {
-          id: '3',
-          title: 'Machine Learning Algorithms for Predictive Healthcare Analytics',
-          author: 'Chen, H., Davis, R., Wilson, T.',
-          publicationInfo: 'IEEE Transactions on Biomedical Engineering, Vol. 71, No. 3',
-          publicationDate: '2024-03-01',
-          accessDate: '2024-03-12',
-          doi: '10.1109/TBME.2024.3456789',
-        },
-      ])
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // Add new citation
+  // Add new citation using the service
   const handleAddCitation = async () => {
     if (!formData.title || !formData.author || !formData.publicationInfo) {
       alert('Please fill in all required fields')
@@ -117,29 +55,17 @@ export default function DocumentCitations({ params }: Route['ComponentProps']) {
 
     try {
       setIsSaving(true)
-      // Contoh API call untuk menambah citation
-      const response = await fetch(`${API_BASE_URL}/documents/${documentId}/citations`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Authorization': `Bearer ${token}`, // Jika menggunakan authentication
-        },
-        body: JSON.stringify({
-          title: formData.title,
-          author: formData.author,
-          publicationInfo: formData.publicationInfo,
-          publicationDate: formData.publicationDate || null,
-          accessDate: formData.accessDate || null,
-          doi: formData.doi || null,
-        }),
+
+      await addCitation({
+        title: formData.title,
+        author: formData.author,
+        publicationInfo: formData.publicationInfo,
+        publicationDate: formData.publicationDate,
+        accessDate: formData.accessDate,
+        DOI: formData.DOI,
+        type: formData.type,
+        FK_DocumentId: documentId || '',
       })
-
-      if (!response.ok) {
-        throw new Error('Failed to add citation')
-      }
-
-      const newCitation = await response.json()
-      setCitations((prev) => [...prev, newCitation])
 
       // Reset form
       setFormData({
@@ -148,67 +74,29 @@ export default function DocumentCitations({ params }: Route['ComponentProps']) {
         publicationInfo: '',
         publicationDate: '',
         accessDate: '',
-        doi: '',
+        DOI: '',
+        type: 'Journal',
       })
       setShowAddForm(false)
     } catch (error) {
       console.error('Error adding citation:', error)
-      // Fallback untuk development - tambah citation secara lokal
-      const newCitation: Citation = {
-        id: Date.now().toString(),
-        title: formData.title,
-        author: formData.author,
-        publicationInfo: formData.publicationInfo,
-        publicationDate: formData.publicationDate || undefined,
-        accessDate: formData.accessDate || undefined,
-        doi: formData.doi || undefined,
-      }
-      setCitations((prev) => [...prev, newCitation])
-      setFormData({
-        title: '',
-        author: '',
-        publicationInfo: '',
-        publicationDate: '',
-        accessDate: '',
-        doi: '',
-      })
-      setShowAddForm(false)
     } finally {
       setIsSaving(false)
     }
   }
 
-  // Delete citation
+  // Delete citation using the service
   const handleDeleteCitation = async (citationId: string) => {
     if (!confirm('Are you sure you want to delete this citation?')) {
       return
     }
 
     try {
-      // Contoh API call untuk menghapus citation
-      const response = await fetch(`${API_BASE_URL}/citations/${citationId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Authorization': `Bearer ${token}`, // Jika menggunakan authentication
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete citation')
-      }
-
-      setCitations((prev) => prev.filter((citation) => citation.id !== citationId))
+      await deleteCitation(citationId)
     } catch (error) {
       console.error('Error deleting citation:', error)
-      // Fallback untuk development - hapus citation secara lokal
-      setCitations((prev) => prev.filter((citation) => citation.id !== citationId))
     }
   }
-
-  useEffect(() => {
-    fetchCitations()
-  }, [documentId])
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab)
@@ -309,20 +197,27 @@ export default function DocumentCitations({ params }: Route['ComponentProps']) {
                           </div>
                         )}
 
-                        {citation.doi && (
+                        {citation.DOI && (
                           <div className="flex items-center gap-2">
                             <ExternalLink className="h-4 w-4" />
                             <a
-                              href={`https://doi.org/${citation.doi}`}
+                              href={`https://doi.org/${citation.DOI}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-primary hover:underline"
                             >
-                              DOI: {citation.doi}
+                              DOI: {citation.DOI}
                             </a>
                           </div>
                         )}
                       </div>
+
+                      {apaFormats && apaFormats[citation.id] && (
+                        <div className="mt-3 pt-3 border-t border-gray-100 text-sm text-gray-700">
+                          <p className="font-medium mb-1">APA Format:</p>
+                          <p className="italic">{apaFormats[citation.id]}</p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2 ml-4">
@@ -358,6 +253,22 @@ export default function DocumentCitations({ params }: Route['ComponentProps']) {
                 <h2 className="text-xl font-semibold text-gray-900 mb-6">Add New Citation</h2>
 
                 <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.type}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, type: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    >
+                      <option value="Journal">Journal</option>
+                      <option value="Book">Book</option>
+                      <option value="Website">Website</option>
+                      <option value="Conference">Conference</option>
+                    </select>
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Title <span className="text-red-500">*</span>
@@ -433,8 +344,8 @@ export default function DocumentCitations({ params }: Route['ComponentProps']) {
                     <label className="block text-sm font-medium text-gray-700 mb-2">DOI</label>
                     <input
                       type="text"
-                      value={formData.doi}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, doi: e.target.value }))}
+                      value={formData.DOI}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, DOI: e.target.value }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                       placeholder="10.1000/example"
                     />
