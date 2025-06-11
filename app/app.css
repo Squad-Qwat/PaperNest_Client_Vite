@@ -6,6 +6,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: 'Geist', 'sans-serif';
+  --font-mono: 'Roboto Mono', 'monospace';
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -40,14 +42,14 @@
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.3rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: #155dfc;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -64,6 +66,7 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -108,11 +111,86 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@layer components {
+  .title-1 {
+    @apply text-6xl md:text-7xl lg:text-8xl font-sans tracking-tight font-medium text-foreground text-balance;
+  }
+
+  .title-2 {
+    @apply text-5xl md:text-6xl lg:text-7xl font-sans tracking-tight uppercase font-medium text-foreground text-balance;
+  }
+
+  .heading-1 {
+    @apply text-2xl uppercase font-sans tracking-tight font-semibold lg:text-3xl text-foreground text-balance;
+  }
+
+  .heading-2 {
+    @apply text-lg uppercase font-sans tracking-tight font-semibold lg:text-xl text-foreground text-balance;
+  }
+
+  .heading-3 {
+    @apply text-lg uppercase font-sans tracking-tight font-medium lg:text-2xl text-foreground text-balance;
+  }
+
+  .heading-4 {
+    @apply text-base uppercase font-sans tracking-tight font-medium text-foreground text-balance;
+  }
+
+  .paragraph {
+    @apply md:text-base font-sans text-sm font-normal text-muted-foreground text-balance;
+  }
+
+  .paragraph-large {
+    @apply text-lg font-sans md:text-xl font-normal text-foreground text-balance;
+  }
+
+  .paragraph-small {
+    @apply font-sans text-sm font-normal text-foreground text-balance;
+  }
+
+  /* Typography - Special Text */
+  .footnote {
+    @apply text-xs font-sans tracking-tight font-normal text-muted-foreground italic;
+  }
+
+  .caption {
+    @apply text-xs font-sans tracking-tight font-medium text-muted-foreground;
+  }
+
+  .label {
+    @apply text-sm font-sans tracking-tight font-medium text-foreground mb-2 block;
+  }
+
+  .helper-text {
+    @apply text-xs font-sans tracking-tight text-muted-foreground mt-1;
+  }
+
+  .error-text {
+    @apply text-xs font-sans tracking-tight text-destructive mt-1;
+  }
+
+  .success-text {
+    @apply text-xs font-sans tracking-tight text-green-500 mt-1;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
+  }
+
+  .background-gradient {
+    background: linear-gradient(
+      45deg,
+      oklch(50.4% 0.134 309),
+      oklch(54.3% 0.145 331),
+      oklch(52.6% 0.116 356),
+      oklch(64.3% 0.124 134),
+      oklch(63.5% 0.096 164)
+    );
   }
 }
