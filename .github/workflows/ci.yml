@@ -32,7 +32,7 @@ jobs:
         CI: true
         
     - name: Check TypeScript compilation
-      run: npm run type-check
+      run: npm run typecheck
 
     - name: Check code format
       run: npm run format
