@@ -51,7 +51,7 @@ export default function LandingNavbar() {
             </nav>
 
             <div className="flex items-center space-x-4">
-              <Link to="/login">
+              <Link to="/auth/login">
                 <Button variant="outline">Log in</Button>
               </Link>
               <Link to="/auth/signup">

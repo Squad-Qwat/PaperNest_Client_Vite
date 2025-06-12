@@ -157,8 +157,8 @@ export function SignupNavbar({ currentStep, setCurrentStep, signupData }: Navbar
                 Help
               </Button>
             </Link>
-            <Link to="/signin">
-              <Button>Sign in</Button>
+            <Link to="/auth/login">
+              <Button>Log in</Button>
             </Link>
           </div>
         </div>
