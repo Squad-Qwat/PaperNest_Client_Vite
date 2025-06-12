@@ -15,7 +15,8 @@ import {
 import { getCurrentUser } from '../services/auth.service'
 
 // Interface for add/edit citation form
-interface CitationForm {
+interface CitationForm 
+{
   title: string
   author: string
   publicationInfo: string
@@ -28,14 +29,16 @@ interface CitationForm {
 // Modal modes
 type ModalMode = 'add' | 'edit' | 'none'
 
-export function meta({ params }: Route['MetaArgs']) {
+export function meta({ params }: Route['MetaArgs']) 
+{
   return [
     { title: `PaperNest - Document ${params.documentId} - Citations` },
     { name: 'description', content: 'Manage citations for your document in PaperNest' },
   ]
 }
 
-export default function DocumentCitations({ params }: Route['ComponentProps']) {
+export default function DocumentCitations({ params }: Route['ComponentProps']) 
+{
   const { documentId } = params
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('Citations')
@@ -119,7 +122,8 @@ export default function DocumentCitations({ params }: Route['ComponentProps']) {
   // Format date for input field (YYYY-MM-DD)
   const formatDateForInput = (dateString?: string) => {
     if (!dateString) return ''
-    try {
+    try 
+    {
       // Gunakan metode yang tidak terpengaruh timezone
       const date = new Date(dateString)
       const year = date.getFullYear()
@@ -127,7 +131,9 @@ export default function DocumentCitations({ params }: Route['ComponentProps']) {
       const month = String(date.getMonth() + 1).padStart(2, '0')
       const day = String(date.getDate()).padStart(2, '0')
       return `${year}-${month}-${day}`
-    } catch (error) {
+    } 
+    catch (error) 
+    {
       console.error('Error formatting citation date for input:', error)
       return ''
     }
@@ -135,29 +141,36 @@ export default function DocumentCitations({ params }: Route['ComponentProps']) {
 
   // Handle opening edit modal
   const handleOpenEditModal = async (citationId: string) => {
-    try {
+    try 
+    {
       const citation = await getCitationById(citationId)
-      if (citation) {
-        console.log('Citation data for edit:', JSON.stringify(citation, null, 2)) // Detail log
-
-        // Pastikan DOI tidak null/undefined
-        const doi = citation.DOI || ''
-        console.log('DOI value:', doi)
-
-        setFormData({
-          title: citation.title,
-          author: citation.author,
-          publicationInfo: citation.publicationInfo,
-          publicationDate: formatDateForInput(citation.publicationDate),
-          accessDate: formatDateForInput(citation.accessDate),
-          DOI: doi,
-          type: citation.type,
-        })
-        setEditingCitationId(citationId)
-        setModalMode('edit')
-        setFormError(null)
+      if (!citation) 
+      {
+        // Throw to catch block to prevent the flow from going down if no citation exist
+        throw new Error("No citation exits, try again!");
       }
-    } catch (error) {
+      
+      console.log('Citation data for edit:', JSON.stringify(citation, null, 2)) // Detail log
+
+      // Pastikan DOI tidak null/undefined
+      const doi = citation.DOI || ''
+      console.log('DOI value:', doi)
+
+      setFormData({
+        title: citation.title,
+        author: citation.author,
+        publicationInfo: citation.publicationInfo,
+        publicationDate: formatDateForInput(citation.publicationDate),
+        accessDate: formatDateForInput(citation.accessDate),
+        DOI: doi,
+        type: citation.type,
+      })
+      setEditingCitationId(citationId)
+      setModalMode('edit')
+      setFormError(null)
+    } 
+    catch (error) 
+    {
       console.error('Error fetching citation for edit:', error)
       setFormError('Failed to load citation for editing.')
     }
@@ -173,7 +186,8 @@ export default function DocumentCitations({ params }: Route['ComponentProps']) {
   // Handle add/edit citation submission
   const handleSubmitCitation = async () => {
     // Validate required fields
-    if (!formData.title || !formData.author || !formData.publicationInfo) {
+    if (!formData.title || !formData.author || !formData.publicationInfo) 
+    {
       setFormError('Please fill in all required fields (Title, Author, and Publication Info).')
       return
     }
@@ -191,35 +205,58 @@ export default function DocumentCitations({ params }: Route['ComponentProps']) {
         DOI: formData.DOI,
       }
 
-      if (modalMode === 'add') {
+      if (modalMode === 'add') 
+      {
         const result = await addCitation(citationData)
         if (result) {
           handleCloseModal()
         }
-      } else if (modalMode === 'edit' && editingCitationId) {
+      } 
+      else if (modalMode === 'edit' && editingCitationId) 
+      {
         const result = await updateCitation(editingCitationId, citationData)
         if (result) {
           handleCloseModal()
         }
       }
+      else
+      {
+        throw new Error("Illegal modal state detected when submitting state! Abort process!");
+      }
     } catch (error) {
-      console.error('Error submitting citation:', error)
+      /*
+      Alternative for:
+      if(error instanceof Error)
+      {
+          console.error('Error submitting citation:', error)
+      }
+      else
+      {
+        console.error('Unknown error detected:', error)
+      }
+      */
+      console.error((error instanceof Error) ? 'Error submitting citation:' : 'Unknown error detected:', error)
       setFormError('Failed to save citation. Please try again.')
     }
   }
 
   // Handle citation deletion
   const handleDeleteCitation = async (citationId: string) => {
-    if (!confirm('Are you sure you want to delete this citation? This action cannot be undone.')) {
+    if (!confirm('Are you sure you want to delete this citation? This action cannot be undone.')) 
+    {
       return
     }
 
-    try {
+    try 
+    {
       const result = await deleteCitation(citationId)
-      if (!result) {
+      if (!result) 
+      {
         setFormError('Failed to delete citation. Please try again.')
       }
-    } catch (error) {
+    } 
+    catch (error) 
+    {
       console.error('Error deleting citation:', error)
       setFormError('Failed to delete citation. Please try again.')
     }
@@ -228,7 +265,8 @@ export default function DocumentCitations({ params }: Route['ComponentProps']) {
   // Handle tab navigation
   const handleTabChange = (tab: string) => {
     setActiveTab(tab)
-    switch (tab) {
+    switch (tab) 
+    {
       case 'Overview':
         navigate(`/document/${documentId}`)
         break
