@@ -7,7 +7,7 @@ export default function LoginNavbar() {
     <nav className="border-b">
       <div className="container px-4 py-3 mx-auto sm:py-4">
         <div className="flex flex-wrap gap-y-4 gap-x-9 justify-between items-center">
-          <Link to="" className="text-2xl font-black uppercase">
+          <Link to="/" className="text-2xl font-black uppercase">
             PaperNest
           </Link>
 
