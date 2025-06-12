@@ -9,6 +9,13 @@ export default [
     ]),
   ]),
 
+  ...prefix('auth/', [
+    layout('layouts/auth-layout.tsx', [
+      route('signup', 'routes/landing/auth/sign-up.tsx'),
+      route('login', 'routes/landing/auth/log-in.tsx'),
+    ]),
+  ]),
+
   ...prefix('dashboard', [
     layout('layouts/dashboard-layout.tsx', [index('routes/dashboard/_index.tsx')]),
   ]),

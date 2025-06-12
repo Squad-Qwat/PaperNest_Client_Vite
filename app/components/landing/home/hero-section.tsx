@@ -51,12 +51,6 @@ export default function HeroSection() {
           className="w-full bg-center bg-cover rounded aspect-video"
         />
       </div>
-
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute top-20 left-1/4 w-72 h-72 bg-gradient-to-r rounded-full blur-3xl animate-pulse from-blue-400/20 to-purple-900/20"></div>
-        <div className="absolute top-40 right-1/4 w-96 h-96 bg-gradient-to-r rounded-full blur-3xl delay-1000 animate-pulse from-purple-400/15 to-pink-600/15"></div>
-        <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-gradient-to-r rounded-full blur-3xl animate-pulse from-cyan-400/10 to-blue-600/10 delay-2000"></div>
-      </div>
     </section>
   )
 }

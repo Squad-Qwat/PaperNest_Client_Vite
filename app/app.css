@@ -113,35 +113,35 @@
 
 @layer components {
   .title-1 {
-    @apply text-6xl md:text-7xl lg:text-8xl font-sans tracking-tight font-medium text-foreground text-balance;
+    @apply font-sans text-6xl font-medium tracking-tight md:text-7xl lg:text-8xl text-foreground text-balance;
   }
 
   .title-2 {
-    @apply text-5xl md:text-6xl lg:text-7xl font-sans tracking-tight uppercase font-medium text-foreground text-balance;
+    @apply font-sans text-5xl font-medium tracking-tight uppercase md:text-6xl lg:text-7xl text-foreground text-balance;
   }
 
   .heading-1 {
-    @apply text-2xl uppercase font-sans tracking-tight font-semibold lg:text-3xl text-foreground text-balance;
+    @apply font-sans text-xl font-semibold tracking-tight md:text-2xl lg:text-3xl text-foreground text-balance;
   }
 
   .heading-2 {
-    @apply text-lg uppercase font-sans tracking-tight font-semibold lg:text-xl text-foreground text-balance;
+    @apply font-sans text-lg font-semibold tracking-tight uppercase lg:text-xl text-foreground text-balance;
   }
 
   .heading-3 {
-    @apply text-lg uppercase font-sans tracking-tight font-medium lg:text-2xl text-foreground text-balance;
+    @apply font-sans text-lg font-medium tracking-tight uppercase lg:text-2xl text-foreground text-balance;
   }
 
   .heading-4 {
-    @apply text-base uppercase font-sans tracking-tight font-medium text-foreground text-balance;
+    @apply font-sans text-base font-medium tracking-tight uppercase text-foreground text-balance;
   }
 
   .paragraph {
-    @apply md:text-base font-sans text-sm font-normal text-muted-foreground text-balance;
+    @apply font-sans text-sm font-normal md:text-base text-muted-foreground text-balance;
   }
 
   .paragraph-large {
-    @apply text-lg font-sans md:text-xl font-normal text-foreground text-balance;
+    @apply font-sans text-lg font-normal md:text-xl text-foreground text-balance;
   }
 
   .paragraph-small {
@@ -150,27 +150,27 @@
 
   /* Typography - Special Text */
   .footnote {
-    @apply text-xs font-sans tracking-tight font-normal text-muted-foreground italic;
+    @apply font-sans text-xs italic font-normal tracking-tight text-muted-foreground;
   }
 
   .caption {
-    @apply text-xs font-sans tracking-tight font-medium text-muted-foreground;
+    @apply font-sans text-xs font-medium tracking-tight text-muted-foreground;
   }
 
   .label {
-    @apply text-sm font-sans tracking-tight font-medium text-foreground mb-2 block;
+    @apply block mb-2 font-sans text-sm font-medium tracking-tight text-foreground;
   }
 
   .helper-text {
-    @apply text-xs font-sans tracking-tight text-muted-foreground mt-1;
+    @apply mt-1 font-sans text-xs tracking-tight text-muted-foreground;
   }
 
   .error-text {
-    @apply text-xs font-sans tracking-tight text-destructive mt-1;
+    @apply mt-1 font-sans text-xs tracking-tight text-destructive;
   }
 
   .success-text {
-    @apply text-xs font-sans tracking-tight text-green-500 mt-1;
+    @apply mt-1 font-sans text-xs tracking-tight text-green-500;
   }
 }
 

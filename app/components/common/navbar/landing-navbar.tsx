@@ -51,11 +51,11 @@ export default function LandingNavbar() {
             </nav>
 
             <div className="flex items-center space-x-4">
-              <Link to="">
+              <Link to="/login">
                 <Button variant="outline">Log in</Button>
               </Link>
-              <Link to="">
-                <Button>Sign Up</Button>
+              <Link to="/auth/signup">
+                <Button>Sign up</Button>
               </Link>
             </div>
           </>
