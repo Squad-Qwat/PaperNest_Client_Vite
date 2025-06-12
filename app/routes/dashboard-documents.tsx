@@ -1,8 +1,11 @@
 import { DocumentsContent } from '@/components/pages/documents-content'
-import { useDocuments } from '../hooks'
-import { useWorkspaces } from '../hooks'
+import { useDocuments, useWorkspaceSelection } from '../hooks'
 import { PlusCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { getCurrentUser } from '@/services/auth.service'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router'
+import type { User } from '@/services/auth.service'
 
 export function meta() {
   return [
@@ -12,15 +15,37 @@ export function meta() {
 }
 
 export default function DashboardDocuments() {
+  const navigate = useNavigate()
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+
+  // Use workspace selection hook instead of old useWorkspaces
+  const {
+    userWorkspaces,
+    selectedWorkspace,
+    isLoading: isLoadingWorkspaces,
+    isSaving: isWorkspaceSaving,
+    error: workspaceError,
+    createWorkspace,
+    joinWorkspace,
+    selectWorkspace,
+  } = useWorkspaceSelection()
+
   const { documents, isLoading, error, fetchDocuments, createDocument, deleteDocument } =
-    useDocuments()
-  const { workspaces, isLoading: isLoadingWorkspaces } = useWorkspaces()
+    useDocuments(selectedWorkspace?.workspaceId)
 
-  // Get the selected workspace (first available workspace for now)
-  const selectedWorkspace = workspaces.length > 0 ? workspaces[0] : null
+  // Check for user session on component mount
+  useEffect(() => {
+    const user = getCurrentUser()
+    if (!user) {
+      // No user session found, redirect to login
+      navigate('/auth/login')
+      return
+    }
+    setCurrentUser(user)
+  }, [navigate])
 
-  // Tampilkan sementara pesan loading selama kedua data dimuat
-  if (isLoading && isLoadingWorkspaces) {
+  // Show loading state if user not yet loaded or during data loading
+  if (!currentUser || (isLoading && isLoadingWorkspaces)) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -32,7 +57,7 @@ export default function DashboardDocuments() {
   }
 
   // Jika tidak memiliki workspace, tampilkan pesan untuk membuat workspace terlebih dahulu
-  if (!isLoadingWorkspaces && workspaces.length === 0) {
+  if (!isLoadingWorkspaces && userWorkspaces.length === 0) {
     return (
       <div className="h-screen w-full">
         <DocumentsContent
@@ -44,6 +69,7 @@ export default function DashboardDocuments() {
           error={null}
           hasWorkspace={false}
           selectedWorkspace={null}
+          currentUser={currentUser}
           emptyStateContent={
             <div className="text-center py-12">
               <PlusCircle className="h-12 w-12 text-purple-600 mx-auto mb-4" />
@@ -71,8 +97,15 @@ export default function DashboardDocuments() {
           onDeleteDocument={deleteDocument}
           isLoading={false}
           error={error}
-          hasWorkspace={workspaces.length > 0}
+          hasWorkspace={userWorkspaces.length > 0}
           selectedWorkspace={selectedWorkspace}
+          currentUser={currentUser}
+          userWorkspaces={userWorkspaces}
+          onSelectWorkspace={selectWorkspace}
+          onCreateWorkspace={createWorkspace}
+          onJoinWorkspace={joinWorkspace}
+          isWorkspaceLoading={isLoadingWorkspaces}
+          isWorkspaceSaving={isWorkspaceSaving}
           emptyStateContent={
             <div className="text-center py-12">
               <div className="text-red-500 mb-4">
@@ -115,8 +148,15 @@ export default function DashboardDocuments() {
         onDeleteDocument={deleteDocument}
         isLoading={isLoading}
         error={error}
-        hasWorkspace={workspaces.length > 0}
+        hasWorkspace={userWorkspaces.length > 0}
         selectedWorkspace={selectedWorkspace}
+        currentUser={currentUser}
+        userWorkspaces={userWorkspaces}
+        onSelectWorkspace={selectWorkspace}
+        onCreateWorkspace={createWorkspace}
+        onJoinWorkspace={joinWorkspace}
+        isWorkspaceLoading={isLoadingWorkspaces}
+        isWorkspaceSaving={isWorkspaceSaving}
       />
     </div>
   )

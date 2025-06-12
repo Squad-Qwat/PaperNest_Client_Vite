@@ -6,6 +6,9 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { DashboardTopNavBar } from '@/components/ui/dashboard-top-navbar'
 import { Plus, Filter, Grid3X3, List, FileText, MoreHorizontal, Trash2, Edit } from 'lucide-react'
+import type { User as AuthUser } from '@/services/auth.service'
+import type { UserWorkspaceWithDetails } from '@/services/user-workspace.service'
+import type { CreateWorkspaceForm } from '@/services/workspaces.service'
 
 interface Document {
   id: string
@@ -24,7 +27,14 @@ interface DocumentsContentProps {
   error: string | null
   emptyStateContent?: React.ReactNode
   hasWorkspace?: boolean // Add workspace context
-  selectedWorkspace?: { id: string; name: string } | null // Add selected workspace info
+  selectedWorkspace?: UserWorkspaceWithDetails | null // Updated type
+  currentUser?: AuthUser | null // Add current user data
+  userWorkspaces?: UserWorkspaceWithDetails[]
+  onSelectWorkspace?: (workspace: UserWorkspaceWithDetails) => void
+  onCreateWorkspace?: (data: CreateWorkspaceForm) => Promise<UserWorkspaceWithDetails>
+  onJoinWorkspace?: (workspaceId: string) => Promise<UserWorkspaceWithDetails>
+  isWorkspaceLoading?: boolean
+  isWorkspaceSaving?: boolean
 }
 
 export function DocumentsContent({
@@ -37,6 +47,13 @@ export function DocumentsContent({
   emptyStateContent,
   hasWorkspace = true,
   selectedWorkspace = null,
+  currentUser = null,
+  userWorkspaces = [],
+  onSelectWorkspace,
+  onCreateWorkspace,
+  onJoinWorkspace,
+  isWorkspaceLoading = false,
+  isWorkspaceSaving = false,
 }: DocumentsContentProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -59,20 +76,6 @@ export function DocumentsContent({
     }
   }
 
-  const formatDateTime = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    } catch {
-      return dateString
-    }
-  }
-
   const handleDocumentClick = (documentId: string) => {
     navigate(`/document/${documentId}`)
   }
@@ -87,6 +90,8 @@ export function DocumentsContent({
     if (window.confirm('Are you sure you want to delete this document?')) {
       try {
         await onDeleteDocument(documentId)
+        alert('Document deleted successfully!')
+        navigate('/dashboard/documents')
       } catch (error) {
         alert('Failed to delete document. Please try again.')
       }
@@ -103,7 +108,7 @@ export function DocumentsContent({
     try {
       const newDoc = await onCreateDocument({
         title: 'New Document',
-        workspaceId: selectedWorkspace.id, // Include workspace ID
+        workspaceId: selectedWorkspace.workspaceId, // Use workspaceId from UserWorkspaceWithDetails
       })
       navigate(`/document-edit/${newDoc.id}`)
     } catch (error) {
@@ -113,16 +118,28 @@ export function DocumentsContent({
   return (
     <div className="flex-1 flex flex-col h-screen bg-white">
       {/* Top Navigation Bar */}
-      <DashboardTopNavBar title="Overview" />
+      <DashboardTopNavBar
+        title="Overview"
+        currentUser={currentUser}
+        selectedWorkspace={selectedWorkspace}
+        userWorkspaces={userWorkspaces}
+        onSelectWorkspace={onSelectWorkspace}
+        onCreateWorkspace={onCreateWorkspace}
+        onJoinWorkspace={onJoinWorkspace}
+        isWorkspaceLoading={isWorkspaceLoading}
+        isWorkspaceSaving={isWorkspaceSaving}
+      />
 
       {/* Welcome Section */}
       <div className="px-6 py-8 bg-gray-50 border-b">
         <div className="flex flex-col items-center">
           <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
-            Welcome to PaperNest Caldera!
+            Welcome back{currentUser?.name ? `, ${currentUser.name.split(' ')[0]}` : ''}!
           </h2>
           <p className="text-gray-600 text-center mb-6">
-            Create stunning document and show the world of your research!
+            {selectedWorkspace
+              ? `Continue working on your documents in "${selectedWorkspace.workspace?.title || 'Unnamed Workspace'}" workspace.`
+              : 'Create stunning documents and show the world your research!'}
           </p>
 
           {/* Search Bar */}

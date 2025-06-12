@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { TopNavBar } from '@/components/ui/document-top-navbar'
 import { Button } from '@/components/ui/button'
 import { Plus, Calendar, ExternalLink, BookOpen, User } from 'lucide-react'
+import { useDocument } from '@/hooks'
 
 interface Citation {
   id: string
@@ -21,6 +22,9 @@ interface DocumentContentProps {
 export function DocumentContent({ documentId }: DocumentContentProps) {
   const [activeTab, setActiveTab] = useState('Overview')
   const navigate = useNavigate()
+
+  // Fetch document data
+  const { document, isLoading, error } = useDocument(documentId)
 
   // Sample citations data
   const [citations, setCitations] = useState<Citation[]>([
@@ -83,6 +87,49 @@ export function DocumentContent({ documentId }: DocumentContentProps) {
   const renderContent = () => {
     switch (activeTab) {
       case 'Overview':
+        if (isLoading) {
+          return (
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                  <div className="h-8 bg-gray-200 rounded w-3/4 mb-6"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/6 mb-2"></div>
+                  <div className="h-6 bg-gray-200 rounded w-1/3"></div>
+                </div>
+              </div>
+            </div>
+          )
+        }
+
+        if (error) {
+          return (
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg border border-amber-200 p-6">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path
+                        fillRule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-medium text-amber-800">Unable to load document</h3>
+                    <p className="mt-1 text-sm text-amber-700">
+                      {error.includes('404') || error.includes('not found')
+                        ? 'The document you\'re looking for doesn\'t exist. You can create a new document by clicking the "Edit Document" button below.'
+                        : `Error: ${error}`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        }
+
         return (
           <div className="space-y-6">
             <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -91,28 +138,24 @@ export function DocumentContent({ documentId }: DocumentContentProps) {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
                   <p className="text-lg font-medium text-gray-900">
-                    Machine Learning in Healthcare: A Comprehensive Review
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
-                  </label>
-                  <p className="text-gray-700 leading-relaxed">
-                    This comprehensive review explores the current applications and future potential
-                    of machine learning in healthcare. We examine various ML techniques used in
-                    medical diagnosis, treatment planning, and patient monitoring. The paper
-                    discusses challenges, opportunities, and ethical considerations in implementing
-                    AI-driven healthcare solutions.
+                    {document?.title || 'Untitled Document'}
                   </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Created Date
                   </label>
-                  <p className="text-gray-900">March 15, 2024</p>
+                  <p className="text-gray-900">
+                    {document?.createdAt
+                      ? new Date(document.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })
+                      : 'Unknown'}
+                  </p>
                 </div>
-              </div>{' '}
+              </div>
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <Button
                   onClick={handleEditDocument}

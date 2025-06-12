@@ -1,13 +1,13 @@
-import type { Route } from './+types/home'
+// import type { Route } from './+types/home'
 import { Link } from 'react-router'
 import { Button } from '@/components/ui/button'
 
-export function meta({}: Route.MetaArgs) {
-  return [
-    { title: 'New React Router App' },
-    { name: 'description', content: 'Welcome to React Router!' },
-  ]
-}
+// export function meta({}: Route.MetaArgs) {
+//   return [
+//     { title: 'New React Router App' },
+//     { name: 'description', content: 'Welcome to React Router!' },
+//   ]
+// }
 
 export default function Home() {
   return (

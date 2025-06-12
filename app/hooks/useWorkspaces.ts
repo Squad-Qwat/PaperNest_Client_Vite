@@ -5,13 +5,19 @@ import WorkspacesService, {
   type JoinWorkspaceResponse,
 } from '../services/workspaces.service'
 import { handleApiError } from '../services/api'
+import { getCurrentUser } from '../services/auth.service'
 
 export function useWorkspaces() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [currentUserId, setCurrentUserId] = useState<string>('current-user-id') // Temporary for development
+
+  // Get current user ID from session
+  const getCurrentUserId = useCallback(() => {
+    const user = getCurrentUser()
+    return user?.id || 'current-user-id' // Fallback untuk development
+  }, [])
 
   const fetchWorkspaces = useCallback(async () => {
     try {
@@ -26,7 +32,7 @@ export function useWorkspaces() {
       const sampleWorkspaces: Workspace[] = [
         {
           id: '1',
-          name: 'Kelompok Penelitian Kesehatan',
+          title: 'Kelompok Penelitian Kesehatan',
           description: 'Workspace untuk kolaborasi proyek penelitian kesehatan',
           isPrivate: false,
           memberCount: 4,
@@ -36,7 +42,7 @@ export function useWorkspaces() {
         },
         {
           id: '2',
-          name: 'Proyek Tugas Akhir',
+          title: 'Proyek Tugas Akhir',
           description: 'Workspace untuk pengerjaan tugas akhir',
           isPrivate: true,
           memberCount: 2,
@@ -57,6 +63,7 @@ export function useWorkspaces() {
         setIsSaving(true)
         setError(null)
 
+        const currentUserId = getCurrentUserId()
         const newWorkspace = await WorkspacesService.createWorkspace({
           ...data,
           ownerId: currentUserId,
@@ -72,7 +79,7 @@ export function useWorkspaces() {
         setIsSaving(false)
       }
     },
-    [currentUserId]
+    [getCurrentUserId]
   )
 
   const joinWorkspace = useCallback(
@@ -81,6 +88,7 @@ export function useWorkspaces() {
         setIsSaving(true)
         setError(null)
 
+        const currentUserId = getCurrentUserId()
         const response = await WorkspacesService.joinWorkspace(workspaceId, currentUserId)
 
         setWorkspaces((prev) => {
@@ -101,7 +109,7 @@ export function useWorkspaces() {
         setIsSaving(false)
       }
     },
-    [currentUserId]
+    [getCurrentUserId]
   )
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router'
 import type { Route } from './+types/document-reviews'
 import { TopNavBar } from '@/components/ui/document-top-navbar'
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { useReviews } from '../hooks'
 import { type StudentReview, type DosenReview } from '../services/reviews.service'
+import { getCurrentUser } from '../services/auth.service'
 
 type ReviewStatus = 'Approved' | 'NeedsRevision' | 'Done'
 
@@ -39,8 +40,22 @@ export default function DocumentReviews({ params }: Route['ComponentProps']) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [showDetailModal, setShowDetailModal] = useState<string | null>(null)
   const [showDocumentModal, setShowDocumentModal] = useState<string | null>(null)
+  const [showLecturerReviewModal, setShowLecturerReviewModal] = useState<string | null>(null)
 
-  const { reviews, isLoading, isSaving, error, addReview, deleteReview } = useReviews(documentId)
+  const {
+    reviews,
+    isLoading,
+    isSaving,
+    error,
+    currentDocumentContent,
+    addReview,
+    addDosenReview,
+    deleteReview,
+    fetchCurrentDocumentContent,
+    isLecturer,
+    isStudent,
+    getCurrentUserInfo,
+  } = useReviews(documentId)
 
   const [formData, setFormData] = useState<AddReviewForm>({
     studentName: '',
@@ -48,25 +63,78 @@ export default function DocumentReviews({ params }: Route['ComponentProps']) {
     documentContent: '',
   })
 
+  const [lecturerReviewData, setLecturerReviewData] = useState({
+    comment: '',
+    status: 'NeedsRevision' as ReviewStatus,
+  })
+
+  // Get current user info for auto-populating student name
+  useEffect(() => {
+    const user = getCurrentUser()
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        studentName: user.name || user.username || '',
+      }))
+    }
+  }, [])
+
+  // Auto-populate document content when opening form
+  const handleOpenAddForm = async () => {
+    setShowAddForm(true)
+
+    // Auto-populate with current document content
+    if (currentDocumentContent) {
+      setFormData((prev) => ({
+        ...prev,
+        documentContent: currentDocumentContent,
+      }))
+    } else {
+      // Try to fetch fresh content
+      try {
+        const content = await fetchCurrentDocumentContent()
+        setFormData((prev) => ({
+          ...prev,
+          documentContent: content,
+        }))
+      } catch (err) {
+        console.warn('Could not fetch document content:', err)
+      }
+    }
+  }
+
   // Add new review
   const handleAddReview = async () => {
-    if (!formData.studentName || !formData.studentComment || !formData.documentContent) {
-      alert('Please fill in all required fields')
+    const user = getCurrentUser()
+    if (!user) {
+      alert('Please log in to submit a review')
+      return
+    }
+
+    if (!formData.studentComment.trim()) {
+      alert('Please add a comment for your review')
+      return
+    }
+
+    if (!formData.documentContent.trim()) {
+      alert('Document content is required')
       return
     }
 
     try {
-      await addReview(formData)
+      const success = await addReview(formData)
 
-      // Reset form
-      setFormData({
-        studentName: '',
-        studentComment: '',
-        documentContent: '',
-      })
-      setShowAddForm(false)
+      if (success) {
+        // Reset form and close modal
+        setFormData({
+          studentName: user.name || user.username || '',
+          studentComment: '',
+          documentContent: '',
+        })
+        setShowAddForm(false)
+      }
     } catch (error) {
-      console.error('Error adding review:', error)
+      console.error('Error submitting review:', error)
     }
   }
 
@@ -81,6 +149,51 @@ export default function DocumentReviews({ params }: Route['ComponentProps']) {
     } catch (error) {
       console.error('Error deleting review:', error)
     }
+  }
+
+  // Add lecturer review
+  const handleAddLecturerReview = async (documentBodyId: string) => {
+    const currentUser = getCurrentUserInfo()
+    if (!currentUser || !isLecturer()) {
+      alert('Only lecturers can provide reviews')
+      return
+    }
+
+    if (!lecturerReviewData.comment.trim()) {
+      alert('Please add a review comment')
+      return
+    }
+
+    try {
+      const dosenReview: DosenReview = {
+        comment: lecturerReviewData.comment,
+        status: lecturerReviewData.status,
+        documentBodyId,
+        lecturerId: currentUser.id,
+      }
+
+      const success = await addDosenReview(documentBodyId, dosenReview)
+
+      if (success) {
+        // Reset form and close modal
+        setLecturerReviewData({
+          comment: '',
+          status: 'NeedsRevision',
+        })
+        setShowLecturerReviewModal(null)
+      }
+    } catch (error) {
+      console.error('Error submitting lecturer review:', error)
+    }
+  }
+
+  // Open lecturer review modal
+  const handleOpenLecturerReview = (documentBodyId: string) => {
+    if (!isLecturer()) {
+      alert('Only lecturers can provide reviews')
+      return
+    }
+    setShowLecturerReviewModal(documentBodyId)
   }
 
   const handleTabChange = (tab: string) => {
@@ -156,8 +269,12 @@ export default function DocumentReviews({ params }: Route['ComponentProps']) {
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Student Reviews</h1>
-              <span className="text-sm text-gray-500">{reviews.length} reviews</span>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {isLecturer() ? 'Document Reviews' : 'Student Reviews'}
+              </h1>
+              <span className="text-sm text-gray-500">
+                {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
+              </span>
             </div>
           </div>
 
@@ -179,7 +296,9 @@ export default function DocumentReviews({ params }: Route['ComponentProps']) {
               <MessageSquare className="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No reviews yet</h3>
               <p className="text-gray-600 mb-4">
-                Be the first to submit a review for this document.
+                {isLecturer()
+                  ? 'No student submissions to review yet.'
+                  : 'Be the first to submit a review for this document.'}
               </p>
             </div>
           ) : (
@@ -236,6 +355,19 @@ export default function DocumentReviews({ params }: Route['ComponentProps']) {
                         <Eye className="h-4 w-4" />
                         View Details
                       </Button>
+                      {isLecturer() && !review.dosenReview && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() =>
+                            handleOpenLecturerReview(review.documentBodyId || review.id)
+                          }
+                          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                          Review
+                        </Button>
+                      )}
                     </div>
                   </div>
 
@@ -264,13 +396,15 @@ export default function DocumentReviews({ params }: Route['ComponentProps']) {
             </div>
           )}
         </div>
-        {/* Floating Add Button */}
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="fixed bottom-6 right-6 bg-primary hover:bg-primary/90 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 z-50"
-        >
-          <Plus className="h-6 w-6" />
-        </button>
+        {/* Floating Add Button - Only for students */}
+        {isStudent() && (
+          <button
+            onClick={handleOpenAddForm}
+            className="fixed bottom-6 right-6 bg-primary hover:bg-primary/90 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 z-50"
+          >
+            <Plus className="h-6 w-6" />
+          </button>
+        )}
         {/* Add Review Modal */}
         {showAddForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -281,21 +415,22 @@ export default function DocumentReviews({ params }: Route['ComponentProps']) {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nama Mahasiswa <span className="text-red-500">*</span>
+                      Student Name
                     </label>
                     <input
                       type="text"
                       value={formData.studentName}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, studentName: e.target.value }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                      placeholder="Enter student name"
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                      placeholder="Auto-filled from your profile"
                     />
-                  </div>{' '}
+                    <p className="text-xs text-gray-500 mt-1">
+                      This is automatically filled from your logged-in profile
+                    </p>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Comment <span className="text-red-500">*</span>
+                      Review Comment <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       value={formData.studentComment}
@@ -304,21 +439,25 @@ export default function DocumentReviews({ params }: Route['ComponentProps']) {
                       }
                       rows={4}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-                      placeholder="Enter your review comment..."
+                      placeholder="Enter your review comment about the document..."
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Document Content (Markdown) <span className="text-red-500">*</span>
+                      Document Content <span className="text-red-500">*</span>
                     </label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      This content is automatically loaded from the current document. You can edit
+                      it if needed.
+                    </p>
                     <textarea
                       value={formData.documentContent}
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, documentContent: e.target.value }))
                       }
-                      rows={8}
+                      rows={10}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none font-mono text-sm"
-                      placeholder="Enter document content in markdown format..."
+                      placeholder="Document content will be auto-loaded from the current document..."
                     />
                   </div>
                 </div>
@@ -334,12 +473,18 @@ export default function DocumentReviews({ params }: Route['ComponentProps']) {
                   </Button>
                   <Button
                     onClick={handleAddReview}
-                    disabled={isSaving}
+                    disabled={isSaving || !formData.studentComment.trim()}
                     className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
                   >
                     {isSaving ? 'Submitting...' : 'Submit Review'}
                   </Button>
                 </div>
+
+                {error && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-600 text-sm">{error}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -492,6 +637,76 @@ export default function DocumentReviews({ params }: Route['ComponentProps']) {
                     />
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Lecturer Review Modal */}
+        {showLecturerReviewModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-6">Dosen Review</h2>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Review Comment <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      value={lecturerReviewData.comment}
+                      onChange={(e) =>
+                        setLecturerReviewData((prev) => ({ ...prev, comment: e.target.value }))
+                      }
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                      placeholder="Enter your review comment..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Review Status
+                    </label>
+                    <select
+                      value={lecturerReviewData.status}
+                      onChange={(e) =>
+                        setLecturerReviewData((prev) => ({
+                          ...prev,
+                          status: e.target.value as ReviewStatus,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    >
+                      <option value="NeedsRevision">Needs Revision</option>
+                      <option value="Approved">Approved</option>
+                      <option value="Done">Done</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 mt-6 pt-6 border-t border-gray-200">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowLecturerReviewModal(null)}
+                    disabled={isSaving}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => handleAddLecturerReview(showLecturerReviewModal || '')}
+                    disabled={isSaving || !lecturerReviewData.comment.trim()}
+                    className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+                  >
+                    {isSaving ? 'Submitting...' : 'Submit Review'}
+                  </Button>
+                </div>
+
+                {error && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-600 text-sm">{error}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

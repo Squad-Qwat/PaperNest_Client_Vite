@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
-import CitationsService, { type Citation } from '../services/citations.service'
+import CitationsService, {
+  type Citation,
+  type CreateCitationForm,
+  CitationType,
+} from '../services/citations.service'
 import { handleApiError } from '../services/api'
+import { getCurrentUser } from '../services/auth.service'
 
 export function useCitations(documentId: string | undefined) {
   const [citations, setCitations] = useState<Citation[]>([])
@@ -9,24 +14,39 @@ export function useCitations(documentId: string | undefined) {
   const [error, setError] = useState<string | null>(null)
   const [apaFormats, setApaFormats] = useState<Record<string, string>>({})
 
+  // Check user authentication
+  const getCurrentUserId = useCallback(() => {
+    const user = getCurrentUser()
+    if (!user || !user.id) {
+      throw new Error('User not authenticated. Please log in to manage citations.')
+    }
+    return user.id
+  }, [])
+
   const fetchCitations = useCallback(async () => {
     if (!documentId) return
 
     try {
       setIsLoading(true)
       setError(null)
+
+      // Check authentication before fetching
+      getCurrentUserId()
+
       const data = await CitationsService.getCitationsForDocument(documentId)
       setCitations(data)
 
-      // Ambil format APA untuk setiap sitasi
+      // Fetch APA format for each citation
       const apaFormatPromises = data.map(async (citation) => {
         try {
           const apaFormat = await CitationsService.getCitationApaFormat(citation.id)
           return { id: citation.id, apaFormat }
         } catch (err) {
+          console.warn(`Failed to get APA format for citation ${citation.id}:`, err)
+          // Fallback to manual APA format
           return {
             id: citation.id,
-            apaFormat: `${citation.author}. (${citation.publicationDate}). ${citation.title}. ${citation.publicationInfo}.`,
+            apaFormat: `${citation.author}. (${new Date(citation.publicationDate).getFullYear()}). ${citation.title}. ${citation.publicationInfo}.`,
           }
         }
       })
@@ -38,13 +58,14 @@ export function useCitations(documentId: string | undefined) {
       })
       setApaFormats(apaFormatsObj)
     } catch (err) {
+      console.error('Error fetching citations:', err)
       setError(handleApiError(err))
 
-      // Fallback untuk development
+      // Fallback for development/demo purposes
       const sampleCitations: Citation[] = [
         {
           id: '1',
-          type: 'Journal',
+          type: CitationType.JournalArticle,
           title: 'Deep Learning for Health Informatics',
           author: 'Cao, C., Liu, F., Tan, H., et al.',
           publicationInfo: 'IEEE Journal of Biomedical and Health Informatics, 21(1), 4-21',
@@ -55,7 +76,7 @@ export function useCitations(documentId: string | undefined) {
         },
         {
           id: '2',
-          type: 'Journal',
+          type: CitationType.JournalArticle,
           title:
             'Machine Learning for Healthcare: On the Verge of a Major Shift in Healthcare Epidemiology',
           author: 'Wiens, J., Shenoy, E.S.',
@@ -68,7 +89,7 @@ export function useCitations(documentId: string | undefined) {
       ]
       setCitations(sampleCitations)
 
-      // Fallback untuk APA format
+      // Fallback APA formats
       const fallbackApaFormats: Record<string, string> = {}
       sampleCitations.forEach((citation) => {
         fallbackApaFormats[citation.id] =
@@ -78,29 +99,33 @@ export function useCitations(documentId: string | undefined) {
     } finally {
       setIsLoading(false)
     }
-  }, [documentId])
+  }, [documentId, getCurrentUserId])
 
   const addCitation = useCallback(
-    async (citation: Omit<Citation, 'id'>) => {
+    async (citation: CreateCitationForm) => {
       if (!documentId) return null
 
       try {
         setIsSaving(true)
         setError(null)
 
+        // Check authentication
+        getCurrentUserId()
+
         const newCitation = await CitationsService.addCitation(documentId, citation)
 
         setCitations((prev) => [...prev, newCitation])
 
-        // Get APA format
+        // Get APA format for the new citation
         try {
           const apaFormat = await CitationsService.getCitationApaFormat(newCitation.id)
           setApaFormats((prev) => ({
             ...prev,
             [newCitation.id]: apaFormat,
           }))
-        } catch (err) {
-          // Fallback untuk APA format
+        } catch (apaError) {
+          console.warn('Failed to get APA format for new citation:', apaError)
+          // Fallback APA format
           setApaFormats((prev) => ({
             ...prev,
             [newCitation.id]: `${newCitation.author} (${new Date(newCitation.publicationDate).getFullYear()}). ${newCitation.title}. ${newCitation.publicationInfo}.`,
@@ -109,22 +134,26 @@ export function useCitations(documentId: string | undefined) {
 
         return newCitation
       } catch (err) {
+        console.error('Error adding citation:', err)
         setError(handleApiError(err))
         return null
       } finally {
         setIsSaving(false)
       }
     },
-    [documentId]
+    [documentId, getCurrentUserId]
   )
 
   const updateCitation = useCallback(
-    async (citationId: string, citation: Partial<Citation>) => {
+    async (citationId: string, citation: Partial<CreateCitationForm>) => {
       if (!documentId) return false
 
       try {
         setIsSaving(true)
         setError(null)
+
+        // Check authentication
+        getCurrentUserId()
 
         const updatedCitation = await CitationsService.updateCitation(
           documentId,
@@ -141,8 +170,9 @@ export function useCitations(documentId: string | undefined) {
             ...prev,
             [citationId]: apaFormat,
           }))
-        } catch (err) {
-          // Fallback untuk APA format jika gagal
+        } catch (apaError) {
+          console.warn('Failed to update APA format:', apaError)
+          // Fallback APA format
           const citationToUpdate = citations.find((c) => c.id === citationId)
           if (citationToUpdate) {
             const author = citation.author || citationToUpdate.author
@@ -157,15 +187,16 @@ export function useCitations(documentId: string | undefined) {
           }
         }
 
-        return true // Berhasil
+        return true
       } catch (err) {
+        console.error('Error updating citation:', err)
         setError(handleApiError(err))
-        return false // Gagal
+        return false
       } finally {
         setIsSaving(false)
       }
     },
-    [documentId, citations]
+    [documentId, citations, getCurrentUserId]
   )
 
   const deleteCitation = useCallback(
@@ -176,26 +207,45 @@ export function useCitations(documentId: string | undefined) {
         setIsSaving(true)
         setError(null)
 
+        // Check authentication
+        getCurrentUserId()
+
         await CitationsService.deleteCitation(documentId, citationId)
 
         setCitations((prev) => prev.filter((c) => c.id !== citationId))
 
-        // Hapus format APA juga
+        // Remove APA format
         setApaFormats((prev) => {
           const newFormats = { ...prev }
           delete newFormats[citationId]
           return newFormats
         })
 
-        return true // Berhasil
+        return true
       } catch (err) {
+        console.error('Error deleting citation:', err)
         setError(handleApiError(err))
-        return false // Gagal
+        return false
       } finally {
         setIsSaving(false)
       }
     },
-    [documentId]
+    [documentId, getCurrentUserId]
+  )
+
+  // Get citation by ID for editing
+  const getCitationById = useCallback(
+    async (citationId: string): Promise<Citation | null> => {
+      try {
+        getCurrentUserId()
+        return await CitationsService.getCitationById(citationId)
+      } catch (err) {
+        console.error('Error fetching citation by ID:', err)
+        setError(handleApiError(err))
+        return null
+      }
+    },
+    [getCurrentUserId]
   )
 
   useEffect(() => {
@@ -214,5 +264,6 @@ export function useCitations(documentId: string | undefined) {
     addCitation,
     updateCitation,
     deleteCitation,
+    getCitationById,
   }
 }

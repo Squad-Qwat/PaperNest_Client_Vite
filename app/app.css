@@ -8,6 +8,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: 'Geist', 'sans-serif';
+  --font-mono: 'Roboto Mono', 'monospace';
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -111,11 +113,86 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@layer components {
+  .title-1 {
+    @apply font-sans text-6xl font-medium tracking-tight md:text-7xl lg:text-8xl text-foreground text-balance;
+  }
+
+  .title-2 {
+    @apply font-sans text-5xl font-medium tracking-tight uppercase md:text-6xl lg:text-7xl text-foreground text-balance;
+  }
+
+  .heading-1 {
+    @apply font-sans text-xl font-semibold tracking-tight md:text-2xl lg:text-3xl text-foreground text-balance;
+  }
+
+  .heading-2 {
+    @apply font-sans text-lg font-semibold tracking-tight uppercase lg:text-xl text-foreground text-balance;
+  }
+
+  .heading-3 {
+    @apply font-sans text-lg font-medium tracking-tight uppercase lg:text-2xl text-foreground text-balance;
+  }
+
+  .heading-4 {
+    @apply font-sans text-base font-medium tracking-tight uppercase text-foreground text-balance;
+  }
+
+  .paragraph {
+    @apply font-sans text-sm font-normal md:text-base text-muted-foreground text-balance;
+  }
+
+  .paragraph-large {
+    @apply font-sans text-lg font-normal md:text-xl text-foreground text-balance;
+  }
+
+  .paragraph-small {
+    @apply font-sans text-sm font-normal text-foreground text-balance;
+  }
+
+  /* Typography - Special Text */
+  .footnote {
+    @apply font-sans text-xs italic font-normal tracking-tight text-muted-foreground;
+  }
+
+  .caption {
+    @apply font-sans text-xs font-medium tracking-tight text-muted-foreground;
+  }
+
+  .label {
+    @apply block mb-2 font-sans text-sm font-medium tracking-tight text-foreground;
+  }
+
+  .helper-text {
+    @apply mt-1 font-sans text-xs tracking-tight text-muted-foreground;
+  }
+
+  .error-text {
+    @apply mt-1 font-sans text-xs tracking-tight text-destructive;
+  }
+
+  .success-text {
+    @apply mt-1 font-sans text-xs tracking-tight text-green-500;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
+  }
+
+  .background-gradient {
+    background: linear-gradient(
+      45deg,
+      oklch(50.4% 0.134 309),
+      oklch(54.3% 0.145 331),
+      oklch(52.6% 0.116 356),
+      oklch(64.3% 0.124 134),
+      oklch(63.5% 0.096 164)
+    );
   }
 }

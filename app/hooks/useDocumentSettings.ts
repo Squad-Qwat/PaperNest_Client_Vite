@@ -18,15 +18,26 @@ export function useDocumentSettings(documentId: string | undefined) {
       setIsLoading(true)
       setError(null)
 
-      const data = await DocumentService.getDocumentSettings(documentId)
-      setSettings(data)
+      console.log('Fetching document settings for:', documentId)
+
+      // Gunakan getDocumentById dari DocumentService
+      const documentData = await DocumentService.getDocumentById(documentId)
+
+      const settings: DocumentSettings = {
+        id: documentData.id,
+        title: documentData.title,
+      }
+
+      console.log('Document settings loaded:', settings)
+      setSettings(settings)
     } catch (err) {
+      console.error('Error fetching document settings:', err)
       setError(handleApiError(err))
 
       // Fallback untuk development
       setSettings({
         id: documentId,
-        title: 'Machine Learning in Healthcare: A Comprehensive Review',
+        title: 'Sample Document Title',
       })
     } finally {
       setIsLoading(false)
@@ -44,9 +55,22 @@ export function useDocumentSettings(documentId: string | undefined) {
       setIsSaving(true)
       setError(null)
 
-      await DocumentService.updateDocumentSettings(documentId, settings)
+      console.log('Saving document settings:', settings)
+
+      // Get current document to preserve savedContent
+      const currentDocument = await DocumentService.getDocumentById(documentId)
+
+      const updateData = {
+        title: settings.title,
+        savedContent: currentDocument.savedContent || '', // Preserve existing content
+      }
+
+      await DocumentService.updateDocument(documentId, updateData)
+      console.log('Document settings saved successfully')
+
       return true // Berhasil
     } catch (err) {
+      console.error('Error saving document settings:', err)
       setError(handleApiError(err))
       return false // Gagal
     } finally {
@@ -85,5 +109,6 @@ export function useDocumentSettings(documentId: string | undefined) {
     updateSettings,
     saveSettings,
     deleteDocument,
+    fetchSettings, // Export this for manual refresh if needed
   }
 }

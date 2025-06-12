@@ -21,49 +21,98 @@ export function useDocument(documentId: string | undefined, userId?: string) {
       const docData = await DocumentService.getDocumentById(documentId)
       setDocument(docData)
 
-      // Fetch konten dokumen (versi terbaru)
-      try {
-        const versionData = await DocumentService.getDocumentContent(documentId)
-        setDocumentVersion(versionData)
-        setContent(versionData.content || '')
-      } catch (err) {
-        console.error('Error mengambil konten dokumen:', err)
-
-        // Fallback untuk development
-        const sampleContent = `# Machine Learning in Healthcare: Current Applications and Future Perspectives
-
-## Abstract
-
-Machine learning (ML) has emerged as a transformative technology in healthcare, offering unprecedented opportunities to improve patient outcomes, streamline clinical workflows, and advance medical research. This comprehensive review examines the current state of ML applications in healthcare, discusses the challenges and limitations, and explores future directions for this rapidly evolving field.
+      // Set content dari savedContent field
+      if (docData.savedContent) {
+        setContent(docData.savedContent)
+      } else {
+        // Fallback content jika tidak ada savedContent
+        const sampleContent = `# ${docData.title || 'Sample Document'}
 
 ## Introduction
 
-Healthcare is experiencing a digital transformation driven by the exponential growth of medical data and advances in artificial intelligence. Machine learning, a subset of AI that enables computers to learn and make predictions from data without explicit programming, has shown remarkable potential in various healthcare domains.`
+Start writing your document content here...
+
+## Content
+
+Add your main content in this section.
+
+### Subsection
+
+You can add subsections as needed.
+
+## Conclusion
+
+Summarize your document here.`
 
         setContent(sampleContent)
       }
     } catch (err) {
-      setError(handleApiError(err))
+      const errorMessage = handleApiError(err)
+      console.warn('Error fetching document, using fallback data:', errorMessage)
 
-      // Fallback untuk development jika dokumen tidak ditemukan
-      setDocument({
-        id: documentId,
-        title: 'Sample Document',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
+      // Check if it's a 404 error (document not found)
+      const is404 = errorMessage.includes('404') || errorMessage.includes('not found')
 
-      const sampleContent = `# Machine Learning in Healthcare: Current Applications and Future Perspectives
-
-## Abstract
-
-Machine learning (ML) has emerged as a transformative technology in healthcare, offering unprecedented opportunities to improve patient outcomes, streamline clinical workflows, and advance medical research. This comprehensive review examines the current state of ML applications in healthcare, discusses the challenges and limitations, and explores future directions for this rapidly evolving field.
+      if (is404) {
+        // For 404 errors, create a fallback document but don't set error state
+        // This allows the user to still use the interface
+        console.log('Document not found, creating fallback document')
+        setDocument({
+          id: documentId,
+          title: 'New Document',
+          savedContent: `# New Document
 
 ## Introduction
 
-Healthcare is experiencing a digital transformation driven by the exponential growth of medical data and advances in artificial intelligence. Machine learning, a subset of AI that enables computers to learn and make predictions from data without explicit programming, has shown remarkable potential in various healthcare domains.`
+Welcome to your new document. Start writing your content here...
 
-      setContent(sampleContent)
+## Main Content
+
+Add your main content in this section.
+
+### Subsection
+
+You can organize your content with subsections like this.
+
+## Conclusion
+
+Summarize your document here.
+
+---
+
+*This document was created automatically because the requested document was not found.*`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+
+        setContent(`# New Document
+
+## Introduction
+
+Welcome to your new document. Start writing your content here...
+
+## Main Content
+
+Add your main content in this section.
+
+### Subsection
+
+You can organize your content with subsections like this.
+
+## Conclusion
+
+Summarize your document here.
+
+---
+
+*This document was created automatically because the requested document was not found.*`)
+
+        // Don't set error for 404, let user interact normally
+        setError(null)
+      } else {
+        // For other errors, show the error message
+        setError(errorMessage)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -73,23 +122,38 @@ Healthcare is experiencing a digital transformation driven by the exponential gr
     setContent(newContent)
   }, [])
 
-  const saveDocument = useCallback(async () => {
-    if (!documentId || !userId) return false
+  const saveDocument = useCallback(
+    async (newTitle?: string, newContent?: string) => {
+      if (!documentId) return false
 
-    try {
-      setIsSaving(true)
-      setError(null)
+      try {
+        setIsSaving(true)
+        setError(null)
 
-      // Simpan konten dokumen sebagai versi baru
-      await DocumentService.saveDocumentContent(documentId, content, userId)
-      return true // Berhasil
-    } catch (err) {
-      setError(handleApiError(err))
-      return false // Gagal
-    } finally {
-      setIsSaving(false)
-    }
-  }, [documentId, content, userId])
+        // Gunakan title dan content yang diberikan, atau fallback ke state saat ini
+        const titleToSave = newTitle !== undefined ? newTitle : document?.title || ''
+        const contentToSave = newContent !== undefined ? newContent : content
+
+        // Update dokumen menggunakan API PUT
+        const updatedDocument = await DocumentService.updateDocument(documentId, {
+          title: titleToSave,
+          savedContent: contentToSave,
+        })
+
+        // Update local state
+        setDocument(updatedDocument)
+        setContent(contentToSave)
+
+        return true // Berhasil
+      } catch (err) {
+        setError(handleApiError(err))
+        return false // Gagal
+      } finally {
+        setIsSaving(false)
+      }
+    },
+    [documentId, content, document?.title]
+  )
 
   useEffect(() => {
     if (documentId) {

@@ -1,5 +1,6 @@
 // Konfigurasi API dasar
-export const API_BASE_URL = 'https://localhost:5001/api'
+// Base URL uses proxy configuration in vite.config.ts that points to https://localhost:7208
+export const API_BASE_URL = '/api'
 
 // Format respons sesuai dokumentasi API
 export type ApiResponse<T> = {

@@ -1,6 +1,8 @@
 import { useParams, useNavigate } from 'react-router'
+import { useState, useEffect } from 'react'
 import { MDEditorClient } from '@/components/ui/md-editor-client'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { TopNavBar } from '@/components/ui/document-top-navbar'
 import { useDocument } from '../hooks'
 
@@ -8,11 +10,21 @@ export default function DocumentEdit() {
   const { documentId } = useParams()
   const navigate = useNavigate()
 
-  const { content, isLoading, isSaving, error, updateContent, saveDocument } =
+  const { document, content, isLoading, isSaving, error, updateContent, saveDocument } =
     useDocument(documentId)
 
+  // Local state for title editing
+  const [title, setTitle] = useState('')
+
+  // Update title when document loads
+  useEffect(() => {
+    if (document?.title) {
+      setTitle(document.title)
+    }
+  }, [document?.title])
+
   const handleSave = async () => {
-    const success = await saveDocument()
+    const success = await saveDocument(title, content)
     if (success) {
       navigate(`/document/${documentId}`)
     } else {
@@ -53,6 +65,17 @@ export default function DocumentEdit() {
                 {isSaving ? 'Saving...' : 'Save Document'}
               </Button>
             </div>
+          </div>
+
+          {/* Document Title */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">Document Title</label>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter document title"
+              className="text-lg font-medium"
+            />
           </div>
 
           {/* Markdown Editor */}
