@@ -110,7 +110,8 @@ export default function DocumentCitations({ params }: Route['ComponentProps']) {
         month: 'long',
         day: 'numeric',
       })
-    } catch {
+    } catch (error) {
+      console.error('Error formatting citation date:', error)
       return dateString
     }
   }
@@ -126,7 +127,8 @@ export default function DocumentCitations({ params }: Route['ComponentProps']) {
       const month = String(date.getMonth() + 1).padStart(2, '0')
       const day = String(date.getDate()).padStart(2, '0')
       return `${year}-${month}-${day}`
-    } catch {
+    } catch (error) {
+      console.error('Error formatting citation date for input:', error)
       return ''
     }
   }
